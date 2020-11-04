@@ -45,7 +45,7 @@ update msg model =
             currentProduct :: model
 
         Remove currentProduct ->
-            List.filter (\x -> x /= currentProduct) model
+            List.filter (\x -> x.name /= currentProduct.name) model
 
 
 btn : List (Attribute msg) -> List (Html msg) -> Html msg
@@ -155,7 +155,6 @@ view model =
               ]
             )
           products)
-                -- [onClick (Add l)] [text l.name]) products)
     , minicart []
           (List.map (\l -> 
             div []
