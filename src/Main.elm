@@ -3,69 +3,93 @@ module Main exposing (..)
 import Browser
 import Css exposing (..)
 import Html
-import Html.Styled.Events exposing (onClick)
 import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (css, href, src)
-import Svg.Styled.Attributes exposing (mode)
-import Svg.Styled.Attributes exposing (direction)
+import Html.Styled.Attributes exposing (class, css, href, src)
+import Html.Styled.Events exposing (on, onClick)
+import Json.Decode as Decode
+import Svg.Styled.Attributes exposing (direction, mode)
 
-main: Program () (List Product) Msg
+
+main : Program () Model Msg
 main =
-  Browser.sandbox
+    Browser.sandbox
         { view = view >> toUnstyled
         , update = update
         , init = init
         }
 
+
 type alias Product =
-  { name : String
-  , price : Float
-  , emoji : String
-  }
+    { name : String
+    , price : Float
+    , emoji : String
+    }
 
-type alias Model = List (Product)
 
-init : List (Product)
-init = []
-products : List (Product)
-products = [
-         { name = "Soccer Ball", price = 200.0, emoji = "⚽️"}
-       , { name = "Football Ball", price = 300.0, emoji = "🏈"}
-       , { name = "Volley Ball", price = 300.0, emoji = "🏐"}
-       , { name = "Baseball Ball", price = 300.0, emoji = "⚾️"}
-       ]
+type alias Model =
+    { products : List Product
+    , minicartOpened : Bool
+    }
 
-type Msg =
-  Add Product
-  | Remove Product
-update : Msg -> Model -> Model 
+
+init : Model
+init =
+    { products = []
+    , minicartOpened = False
+    }
+
+
+products : List Product
+products =
+    [ { name = "Soccer Ball", price = 200.0, emoji = "⚽️" }
+    , { name = "Football Ball", price = 300.0, emoji = "🏈" }
+    , { name = "Volley Ball", price = 300.0, emoji = "🏐" }
+    , { name = "Baseball Ball", price = 300.0, emoji = "⚾️" }
+    , { name = "Tennis Ball", price = 300.0, emoji = "🎾" }
+    , { name = "Rugby Ball", price = 300.0, emoji = "🏉" }
+    , { name = "Snooker Ball", price = 300.0, emoji = "🎱" }
+    ]
+
+
+type Msg
+    = Add Product
+    | Remove Product
+    | HideMinicart
+
+
+update : Msg -> Model -> Model
 update msg model =
     case msg of
         Add currentProduct ->
-            currentProduct :: model
+            { model | products = currentProduct :: model.products, minicartOpened = True }
 
         Remove currentProduct ->
-            List.filter (\x -> x.name /= currentProduct.name) model
+            { model | products = List.filter (\x -> x.name /= currentProduct.name) model.products }
+
+        HideMinicart ->
+            { model | minicartOpened = False }
 
 
 btn : List (Attribute msg) -> List (Html msg) -> Html msg
 btn =
     styled div
         [ color (hex "333")
-        , fontFamilies ["Helvetica"]
+        , fontFamilies [ "Helvetica" ]
         , width (px 200)
         , color (hex "fff")
         , textAlign center
         , cursor pointer
         , borderRadius (px 5)
-        , padding2 (px 5) (px 10)
+        , padding2 (px 15) (px 10)
         , backgroundColor (hex "72a4d4")
         ]
+
+
 btnrm : List (Attribute msg) -> List (Html msg) -> Html msg
 btnrm =
     styled div
         [ color (hex "333")
-        , fontFamilies ["Helvetica"]
+        , fontFamilies [ "Helvetica" ]
         , width (px 200)
         , color (hex "fff")
         , textAlign center
@@ -74,6 +98,7 @@ btnrm =
         , padding2 (px 3) (px 5)
         , backgroundColor (hex "bf3a3c")
         ]
+
 
 product : List (Attribute msg) -> List (Html msg) -> Html msg
 product =
@@ -89,23 +114,24 @@ product =
         , flexDirection column
         ]
 
+
 productList : List (Attribute msg) -> List (Html msg) -> Html msg
 productList =
     styled div
         [ displayFlex
         , marginTop (px 50)
-        , width (px 1000)
+        , margin2 (px 0) auto
+        , width (pct 95)
         , alignItems center
         , flexWrap wrap
         ]
-
 
 
 navbar : List (Attribute msg) -> List (Html msg) -> Html msg
 navbar =
     styled nav
         [ height (px 50)
-        , fontFamilies ["Helvetica"]
+        , fontFamilies [ "Helvetica" ]
         , color (rgb 250 250 250)
         , backgroundColor (hex "333333")
         , displayFlex
@@ -114,11 +140,13 @@ navbar =
         , alignItems center
         ]
 
+
 emoji : List (Attribute msg) -> List (Html msg) -> Html msg
 emoji =
     styled div
         [ fontSize (px 80)
         ]
+
 
 minicart : List (Attribute msg) -> List (Html msg) -> Html msg
 minicart =
@@ -128,7 +156,7 @@ minicart =
         , position absolute
         , top (px 0)
         , right (px 0)
-        , fontFamilies ["Helvetica"]
+        , fontFamilies [ "Helvetica" ]
         , color (rgb 250 250 250)
         , backgroundColor (hex "f6f6f6")
         , border3 (px 1) solid (hex "#ccc")
@@ -139,27 +167,76 @@ minicart =
         , color (hex "333")
         ]
 
+
+wrapper : List (Attribute msg) -> List (Html msg) -> Html msg
+wrapper =
+    styled div
+        [ position absolute
+        , top (px 0)
+        , bottom (px 0)
+        , right (px 0)
+        , left (px 0)
+        , displayFlex
+        , alignItems center
+        , justifyContent center
+        , backgroundColor (rgba 33 43 54 0.4)
+        ]
+
+
+wrapperClass : String
+wrapperClass =
+    "wrapper"
+
+
+wrapperClickDecoder : msg -> Decode.Decoder msg
+wrapperClickDecoder closeMsg =
+    Decode.at [ "target", "className" ] Decode.string
+        |> Decode.andThen
+            (\c ->
+                if String.contains wrapperClass c then
+                    Decode.succeed closeMsg
+
+                else
+                    Decode.fail "ignoring"
+            )
+
+
+minicartComponent : Model -> Html Msg
+minicartComponent model =
+    if model.minicartOpened then
+        wrapper [ class wrapperClass, on "click" (wrapperClickDecoder HideMinicart) ]
+            [ minicart []
+                (List.map
+                    (\l ->
+                        div []
+                            [ p [] [ text l.name ]
+                            , btnrm [ onClick (Remove l) ] [ text "Remove item" ]
+                            ]
+                    )
+                    model.products
+                )
+            ]
+
+    else
+        text ""
+
+
 view : Model -> Html Msg
 view model =
-  div []
-    [navbar []
-        [ div [] [ text "Elm shopping" ]]
-    , productList []
-          (List.map (\l -> 
-            product []
-              [
-                p [] [text l.name]
-              , emoji [] [text l.emoji]
-              , p [] [text ( String.fromFloat l.price )]
-              , btn [onClick (Add l)] [text "comprar"]
-              ]
+    div []
+        [ navbar []
+            [ div [] [ text "Elm shopping" ] ]
+        , productList []
+            (List.map
+                (\l ->
+                    product []
+                        [ p [] [ text l.name ]
+                        , emoji [] [ text l.emoji ]
+                        , p [] [ text ("$ " ++ String.fromFloat l.price) ]
+                        , btn [ onClick (Add l) ] [ text "Buy item" ]
+                        ]
+                )
+                products
             )
-          products)
-    , minicart []
-          (List.map (\l -> 
-            div []
-              [p [] [text l.name] 
-              , btnrm [onClick (Remove l)] [text "Remover"]]
-              )
-          model)
-    ]
+        , minicartComponent model
+        ]
