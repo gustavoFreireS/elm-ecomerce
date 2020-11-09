@@ -54,7 +54,7 @@ products =
 type Msg
     = Add Product
     | Remove Product
-    | HideMinicart
+    | ToggleMinicart
 
 
 update : Msg -> Model -> Model
@@ -66,8 +66,8 @@ update msg model =
         Remove currentProduct ->
             { model | products = List.filter (\x -> x.name /= currentProduct.name) model.products }
 
-        HideMinicart ->
-            { model | minicartOpened = False }
+        ToggleMinicart ->
+            { model | minicartOpened = not model.minicartOpened }
 
 
 btn : List (Attribute msg) -> List (Html msg) -> Html msg
@@ -132,12 +132,13 @@ navbar =
     styled nav
         [ height (px 50)
         , fontFamilies [ "Helvetica" ]
-        , color (rgb 250 250 250)
-        , backgroundColor (hex "333333")
+        , color (hex "33333")
+        , backgroundColor (hex "f6f6f6")
         , displayFlex
         , boxSizing borderBox
         , padding (px 15)
         , alignItems center
+        , justifyContent spaceBetween
         ]
 
 
@@ -145,6 +146,12 @@ emoji : List (Attribute msg) -> List (Html msg) -> Html msg
 emoji =
     styled div
         [ fontSize (px 80)
+        ]
+
+minicartButton : List (Attribute msg) -> List (Html msg) -> Html msg
+minicartButton =
+    styled div
+        [ cursor pointer
         ]
 
 
@@ -204,7 +211,7 @@ wrapperClickDecoder closeMsg =
 minicartComponent : Model -> Html Msg
 minicartComponent model =
     if model.minicartOpened then
-        wrapper [ class wrapperClass, on "click" (wrapperClickDecoder HideMinicart) ]
+        wrapper [ class wrapperClass, on "click" (wrapperClickDecoder ToggleMinicart) ]
             [ minicart []
                 (List.map
                     (\l ->
@@ -225,7 +232,9 @@ view : Model -> Html Msg
 view model =
     div []
         [ navbar []
-            [ div [] [ text "Elm shopping" ] ]
+            [ div [] [ text "Elm shopping" ]
+            , minicartButton [ onClick ToggleMinicart] [ text "🛒" ]
+            ]
         , productList []
             (List.map
                 (\l ->
